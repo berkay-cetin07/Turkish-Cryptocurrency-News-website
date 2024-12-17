@@ -8,9 +8,9 @@ services:
     ports:
       - "8080:80"
     volumes:
-      # Mount the project's directories into the container for hot reloading
       - ./public:/var/www/html
       - ./src:/var/www/src
+      - ./uploads:/var/www/html/uploads
     environment:
       APACHE_RUN_USER: www-data
       APACHE_RUN_GROUP: www-data
