@@ -28,7 +28,7 @@ foreach ($coins as $coinName => $coinId) {
 <div class="container">
     <h1 style="text-align:center; margin-bottom:40px;">Güncel Kripto Durumu</h1>
     <p style="text-align:center; margin-bottom:40px;">
-        Bugünün en son değerlerini Bitcoin, Ethereum ve Dogecoin için görüntüleyin.
+        Better Be Rich, Türkiyenin En Büyük Kripto Haber Platformu ile bugünün en son değerlerini Bitcoin, Ethereum ve Dogecoin için görüntüleyin.
     </p>
 
     <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(350px,1fr)); gap:30px; margin-bottom:40px;">
