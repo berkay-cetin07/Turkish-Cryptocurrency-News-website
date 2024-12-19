@@ -11,27 +11,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login'])) {
     $username = trim($_POST['username']);
     $password = trim($_POST['password']);
 
-    // Veritabanı sorgusu
-    $stmt = $conn->prepare("SELECT password FROM users WHERE username = ?");
-    $stmt->bind_param("s", $username);
+    // Veritabanı sorgusu (PDO ile hazırlanmış sorgu)
+    $stmt = $conn->prepare("SELECT password FROM users WHERE username = :username");
+    $stmt->bindParam(':username', $username, PDO::PARAM_STR);
     $stmt->execute();
-    $stmt->store_result();
 
-    if ($stmt->num_rows > 0) {
-        $stmt->bind_result($hashedPassword);
-        $stmt->fetch();
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if ($password === $hashedPassword) {
-            $_SESSION['username'] = $username;
-            header("Location: /?page=home");
-            exit;
-        } else {
-            $error = "Geçersiz kullanıcı adı veya şifre.";
-        }
+    if ($user && $user['password'] === $password) {
+        $_SESSION['username'] = $username;
+        header("Location: /?page=home");
+        exit;
     } else {
-        $error = "Kullanıcı bulunamadı.";
+        $error = "Geçersiz kullanıcı adı veya şifre.";
     }
-    $stmt->close();
 }
 
 // Kayıt işlemi
@@ -40,23 +33,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
     $password = trim($_POST['password']);
 
     // Kullanıcı adı zaten var mı kontrolü
-    $stmt = $conn->prepare("SELECT id FROM users WHERE username = ?");
-    $stmt->bind_param("s", $username);
+    $stmt = $conn->prepare("SELECT COUNT(*) FROM users WHERE username = :username");
+    $stmt->bindParam(':username', $username, PDO::PARAM_STR);
     $stmt->execute();
-    $stmt->store_result();
 
-    if ($stmt->num_rows > 0) {
+    if ($stmt->fetchColumn() > 0) {
         $error = "Bu kullanıcı adı zaten alınmış.";
     } else {
         // Yeni kullanıcı kaydı
-        $stmt = $conn->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
-        $stmt->bind_param("ss", $username, $password);
+        $stmt = $conn->prepare("INSERT INTO users (username, password) VALUES (:username, :password)");
+        $stmt->bindParam(':username', $username, PDO::PARAM_STR);
+        $stmt->bindParam(':password', $password, PDO::PARAM_STR);
+
         if ($stmt->execute()) {
             $success = "Kayıt başarılı! Giriş yapabilirsiniz.";
         } else {
             $error = "Kayıt sırasında bir hata oluştu.";
         }
-        $stmt->close();
     }
 }
 ?>
