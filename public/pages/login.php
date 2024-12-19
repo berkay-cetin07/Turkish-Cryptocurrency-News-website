@@ -7,7 +7,11 @@ require_once __DIR__ . '/../../src/db.php';
 
 // Kullanıcı zaten giriş yaptıysa ana sayfaya yönlendir
 if (isset($_SESSION['username'])) {
-    header("Location: /?page=home");
+    if ($_SESSION['role'] === 'admin') {
+        header("Location: /admin.php"); // Admin kullanıcı admin paneline yönlendirilir
+    } else {
+        header("Location: /?page=home"); // Normal kullanıcı ana sayfaya yönlendirilir
+    }
     exit;
 }
 
@@ -28,9 +32,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['login'])) {
         $result = $conn->query($query);
 
         if ($result && $result->rowCount() > 0) {
+            $user = $result->fetch(PDO::FETCH_ASSOC);
             // Kullanıcı oturumunu başlat
-            $_SESSION['username'] = $username;
-            header("Location: /?page=home");
+            $_SESSION['username'] = $user['username'];
+            $_SESSION['role'] = $user['role'];
+
+            if ($user['role'] === 'admin') {
+                header("Location: /admin.php"); // Admin kullanıcı admin paneline yönlendirilir
+            } else {
+                header("Location: /?page=home"); // Normal kullanıcı ana sayfaya yönlendirilir
+            }
             exit;
         } else {
             $error = "Geçersiz kullanıcı adı veya şifre.";

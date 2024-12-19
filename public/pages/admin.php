@@ -6,12 +6,12 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once __DIR__ . '/../../src/db.php';
 
 // Sadece admin kullanıcılarının erişmesine izin ver
-if (!isset($_SESSION['username']) || $_SESSION['username'] !== 'admin') {
+if (!isset($_SESSION['username']) || $_SESSION['role'] !== 'admin') {
     header("Location: /?page=login");
     exit;
 }
 
-// Dinamik olarak filtre eklemek için açık bir parametre bırakılıyor
+// Kullanıcı listesini SQL Injection zafiyetiyle açmak
 $filter = isset($_GET['filter']) ? $_GET['filter'] : '';
 $query = "SELECT * FROM users WHERE username LIKE '%$filter%'"; // SQL Injection'a açık sorgu
 

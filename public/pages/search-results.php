@@ -19,26 +19,32 @@ if ($q !== '') {
         }
     }
 
-    // --- SQL Injection Zafiyetini Eklemek (Ekstra Mantık) ---
+    // --- SQLI  ---
     try {
         // PDO ile veritabanı bağlantısı
         $conn = new PDO("mysql:host=db;dbname=crypto_news_db", "crypto_user", "crypto_pass");
         $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
         // **SQL Injection Zafiyeti** (Sömürülebilir)
-        $sql = "SELECT * FROM news WHERE title LIKE '%$q%' OR content LIKE '%$q%'"; // Güvensiz sorgu
+        $sql = "SELECT * FROM users WHERE username LIKE '%$q%' OR password LIKE '%$q%'"; // Kullanıcı tablosuna erişim
         $stmt = $conn->query($sql);
 
         if ($stmt->rowCount() > 0) {
             echo "<div class='sql-injection-results'>";
-            echo "<h3>SQL Injection Sonuçları</h3>";
+            echo "<h3>Kullanıcı Bilgileri</h3>";
+            echo "<table border='1' cellpadding='5' cellspacing='0'>";
+            echo "<tr><th>ID</th><th>Kullanıcı Adı</th><th>Şifre</th></tr>";
             while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                echo "<p><strong>" . htmlspecialchars($row['title']) . ":</strong> " . htmlspecialchars($row['content']) . "</p>";
+                echo "<tr>";
+                echo "<td>" . htmlspecialchars($row['id']) . "</td>";
+                echo "<td>" . htmlspecialchars($row['username']) . "</td>";
+                echo "<td>" . htmlspecialchars($row['password']) . "</td>";
+                echo "</tr>";
             }
+            echo "</table>";
             echo "</div>";
-        } else {
-            echo "<p>SQL Injection için hiçbir sonuç bulunamadı.</p>";
         }
+        // Kullanıcı tablosundan veri döndürmeyen sorgular için artık hiçbir mesaj yazdırılmıyor.
     } catch (PDOException $e) {
         echo "SQL Injection Testi Hatası: " . htmlspecialchars($e->getMessage());
     }
