@@ -4,7 +4,7 @@ require_once __DIR__ . '/../src/includes/functions.php';
 
 $page = isset($_GET['page']) ? $_GET['page'] : 'home';
 
-$allowed_pages = ['home', 'news', 'coin-values', 'search-results', 'charts'];
+$allowed_pages = ['home', 'news', 'coin-values', 'search-results', 'charts', 'upload'];
 
 if (!in_array($page, $allowed_pages)) {
     $page = 'home';
