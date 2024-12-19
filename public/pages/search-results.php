@@ -18,8 +18,32 @@ if ($q !== '') {
             $results[] = $item;
         }
     }
-}
 
+    // --- SQL Injection Zafiyetini Eklemek (Ekstra Mantık) ---
+    try {
+        // PDO ile veritabanı bağlantısı
+        $conn = new PDO("mysql:host=db;dbname=crypto_news_db", "crypto_user", "crypto_pass");
+        $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+        // **SQL Injection Zafiyeti** (Sömürülebilir)
+        $sql = "SELECT * FROM news WHERE title LIKE '%$q%' OR content LIKE '%$q%'"; // Güvensiz sorgu
+        $stmt = $conn->query($sql);
+
+        if ($stmt->rowCount() > 0) {
+            echo "<div class='sql-injection-results'>";
+            echo "<h3>SQL Injection Sonuçları</h3>";
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                echo "<p><strong>" . htmlspecialchars($row['title']) . ":</strong> " . htmlspecialchars($row['content']) . "</p>";
+            }
+            echo "</div>";
+        } else {
+            echo "<p>SQL Injection için hiçbir sonuç bulunamadı.</p>";
+        }
+    } catch (PDOException $e) {
+        echo "SQL Injection Testi Hatası: " . htmlspecialchars($e->getMessage());
+    }
+    // -------------------------------------------------------
+}
 ?>
 
 <div class="container">
