@@ -10,7 +10,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['exchange_domain'])) 
 
     // Vulnerable line: input is passed directly into the shell command
     $output = shell_exec("ping -c 4 {$domain}"); 
-    echo "<pre>{$output}</pre>"; // Displaying the command output
 }
 ?>
 
@@ -29,4 +28,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['exchange_domain'])) 
             <button type="submit" class="btn btn-primary">Bağlantıyı Test Et</button>
         </div>
     </form>
+
+    <?php if (isset($output)): ?>
+        <div class="output-section" style="margin-top: 40px; max-width: 600px; margin-left: auto; margin-right: auto;">
+            <h3 style="text-align: center; margin-bottom: 20px;">Bağlantı Testi Sonucu</h3>
+            <div class="output-container" style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 20px; font-family: monospace; white-space: pre-wrap; word-wrap: break-word;">
+                <?php echo htmlspecialchars($output); ?>
+            </div>
+        </div>
+    <?php endif; ?>
 </div>

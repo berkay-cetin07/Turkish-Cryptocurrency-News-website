@@ -34,7 +34,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_url'])) {
     
     if (!isUrlBlocked($url)) {
         try {
-            // Vulnerable SSRF - directly using user input
             $response = file_get_contents($url);
             $result = $response;
         } catch (Exception $e) {

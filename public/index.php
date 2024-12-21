@@ -13,7 +13,7 @@ if (isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], '/redirect
 // Default page routing logic
 $page = isset($_GET['page']) ? $_GET['page'] : 'home';
 
-$allowed_pages = ['home', 'news', 'coin-values', 'search-results', 'charts', 'upload', 'exchange-status','redirect', 'login', 'logout', 'admin', 'price-checker'];
+$allowed_pages = ['home', 'news', 'coin-values', 'search-results', 'charts', 'support', 'exchange-status','redirect', 'login', 'logout', 'admin', 'price-checker'];
 
 
 // Login sayfasına yönlendirme kontrolü

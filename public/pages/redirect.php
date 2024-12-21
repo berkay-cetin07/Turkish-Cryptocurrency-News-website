@@ -24,7 +24,7 @@ if (isset($_GET['redirect'])) {
 <div class="container">
     <h2 style="text-align:center; margin-bottom:30px;">Ziyaret ettiğiniz için teşekkür ederiz! Kripto Para Birimleri Hakkında Daha Fazlasını Keşfedin</h2>
     <p style="text-align:center; margin-bottom:30px;">
-        Kripto paralarla ilgili daha ayrıntılı analizler ve güncel haberler için <a href="redirect.php?redirect=http://example.com" class="btn btn-primary" style="margin:0;">iş ortaklarımızı ziyaret edin</a>.
+        Kripto paralarla ilgili daha ayrıntılı analizler ve güncel haberler için <a href="redirect.php?redirect=https://binance.com" class="btn btn-primary" style="margin:0;">İş ortaklarımızı ziyaret edin</a>.
     </p>
 </div>
 

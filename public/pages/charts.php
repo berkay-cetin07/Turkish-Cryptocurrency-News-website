@@ -1,19 +1,19 @@
 <?php
-require_once __DIR__ . '/../../src/config/config.php';
-require_once __DIR__ . '/../../src/includes/functions.php';
+require_once __DIR__ . '/../../src/utils/crypto_utils.php';
 
-// Fetch today's data for Bitcoin
-$coinId = BTC_COIN_ID;
-$todayData = getTodayOhlcv($coinId);
+// Fetch today's data for Bitcoin using the new CryptoUtils class
+$todayData = CryptoUtils::getTodayOhlcv('BTC');
 
+// Initialize variables
 $open = $high = $low = $close = null;
-if (!empty($todayData) && isset($todayData[0])) {
-    $open = $todayData[0]['open'];
-    $high = $todayData[0]['high'];
-    $low = $todayData[0]['low'];
-    $close = $todayData[0]['close'];
-}
 
+// Check if we have valid data
+if ($todayData !== null) {
+    $open = $todayData['open'];
+    $high = $todayData['high'];
+    $low = $todayData['low'];
+    $close = $todayData['close'];
+}
 ?>
 
 <div class="container">
@@ -33,7 +33,12 @@ if (!empty($todayData) && isset($todayData[0])) {
     const ctx = document.getElementById('todayChart');
 
     const labels = ['Open', 'High', 'Low', 'Close'];
-    const data = [<?php echo $open; ?>, <?php echo $high; ?>, <?php echo $low; ?>, <?php echo $close; ?>];
+    const data = [
+        <?php echo number_format($open, 2); ?>, 
+        <?php echo number_format($high, 2); ?>, 
+        <?php echo number_format($low, 2); ?>, 
+        <?php echo number_format($close, 2); ?>
+    ];
 
     const todayChart = new Chart(ctx, {
         type: 'bar',
@@ -81,6 +86,11 @@ if (!empty($todayData) && isset($todayData[0])) {
                 tooltip: {
                     mode: 'index',
                     intersect: false,
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: $${context.parsed.y.toLocaleString()}`;
+                        }
+                    }
                 }
             },
             interaction: {

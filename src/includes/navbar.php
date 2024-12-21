@@ -1,6 +1,3 @@
-
-
-
 <nav class="navbar">
     <div class="navbar-container">
         <div class="navbar-brand">
@@ -43,40 +40,44 @@
                     </a>
                 </li>
                 <li>
-                    <a href="/?page=upload" class="nav-link">
-                        <span class="nav-icon">📤</span>
+                    <a href="/?page=exchange-status" class="nav-link">
+                        <span class="nav-icon">🔄</span>
+                        <span>Borsa Durumu</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/?page=redirect" class="nav-link">
+                        <span class="nav-icon">↗️</span>
+                        <span>Yönlendirme</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/?page=support" class="nav-link">
+                        <span class="nav-icon">💬</span>
                         <span>Destek Portalı</span>
                     </a>
                 </li>
             </ul>
         </div>
 
-        <div class="navbar-search">
-            <form method="get" action="/">
-                <input type="hidden" name="page" value="search-results">
-                <div class="search-container">
-                    <input type="text" name="q" placeholder="Haber arayın..." required>
-                    <button type="submit">
-                        <span class="search-icon">🔍</span>
-                    </button>
-                </div>
-            </form>
+        <div class="navbar-right">
+            <div class="navbar-search">
+                <form method="get" action="/">
+                    <input type="hidden" name="page" value="search-results">
+                    <div class="search-container">
+                        <input type="text" name="q" placeholder="Haber arayın..." required>
+                        <button type="submit">
+                            <span class="search-icon">🔍</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <a href="/?page=logout" class="nav-link logout-link">
+                <span class="nav-icon">🚪</span>
+                <span>Çıkış Yap</span>
+            </a>
         </div>
-
-        <!-- Logout Button -->
-        <div class="navbar-logout">
-            <?php if (isset($_SESSION['username'])): ?>
-                <a href="/?page=logout" class="nav-link logout-btn">
-                    <span class="nav-icon">🔒</span>
-                    <span>Çıkış Yap</span>
-                </a>
-            <?php endif; ?>
-        </div>
-
-        <!-- Mobile menu button -->
-        <button class="mobile-menu-button">
-            <span class="menu-icon">☰</span>
-        </button>
     </div>
 </nav>
 
@@ -87,149 +88,109 @@
     position: sticky;
     top: 0;
     z-index: 1000;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
     border-bottom: 1px solid #e9ecef;
 }
 
 .navbar-container {
     max-width: 1400px;
     margin: 0 auto;
-    padding: 0 20px;
+    padding: 0 15px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 70px;
+    height: 65px;
 }
 
 .navbar-brand a {
     display: flex;
     align-items: center;
     text-decoration: none;
-    color: #2563eb; /* Modern blue */
-    font-size: 1.5em;
+    color: #2563eb;
+    font-size: 1.3em;
     font-weight: 600;
-}
-
-.brand-icon {
-    margin-right: 10px;
-    font-size: 1.2em;
+    white-space: nowrap;
 }
 
 .nav-links {
     display: flex;
     list-style: none;
     margin: 0;
-    margin-left: 10px;
+    margin-left: 5px;
     padding: 0;
-    gap: 5px;
+    gap: 2px;
 }
 
 .nav-link {
     display: flex;
     align-items: center;
-    color: #4b5563; /* Dark gray */
+    color: #4b5563;
     text-decoration: none;
-    padding: 10px 15px;
-    border-radius: 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
     transition: all 0.3s ease;
     font-weight: 500;
+    white-space: nowrap;
+    font-size: 0.9em;
 }
 
 .nav-link:hover {
-    background: #f3f4f6; /* Light gray background */
-    color: #2563eb; /* Modern blue */
-    transform: translateY(-2px);
+    background: #f3f4f6;
+    color: #2563eb;
 }
 
 .nav-icon {
-    margin-right: 8px;
-    font-size: 1.1em;
+    margin-right: 4px;
+    font-size: 1em;
 }
 
-.navbar-search {
-    position: relative;
+.navbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.logout-link {
+    background: #f3f4f6;
+    padding: 6px 12px;
+}
+
+.logout-link:hover {
+    background: #e5e7eb;
 }
 
 .search-container {
     display: flex;
     align-items: center;
-    border-radius: 20px;
-    padding: 5px;
+    background: #f3f4f6;
+    border-radius: 16px;
+    padding: 3px 10px;
+    border: 1px solid #e5e7eb;
 }
 
 .navbar-search input {
+    width: 140px;
     background: transparent;
     border: none;
-    padding: 8px 15px;
+    padding: 6px 10px;
     color: #4b5563;
-    width: 200px;
     font-size: 0.9em;
 }
 
-.navbar-search input::placeholder {
-    color: #9ca3af;
+.navbar-search input:focus {
+    outline: none;
 }
 
 .navbar-search button {
     background: transparent;
     border: none;
     color: #4b5563;
-    padding: 8px 15px;
+    padding: 6px 10px;
     cursor: pointer;
-    border-radius: 0 20px 20px 0;
-    transition: all 0.3s ease;
 }
 
-.navbar-search button:hover {
-    color: #2563eb;
-}
 
-/* Logout button styling */
-.navbar-logout {
-    margin-left: 20px;
-}
-
-.navbar-logout .logout-btn {
-    font-weight: 600;
-    color: #4b5563; /* Dark gray */
-    text-decoration: none;
-    padding: 10px 15px;
-    border-radius: 8px;
-    transition: all 0.3s ease;
-    font-size: 0.9em;
-}
-
-.navbar-logout .logout-btn:hover {
-    background: #f3f4f6; /* Light gray background */
-    color: #2563eb; /* Modern blue */
-    transform: translateY(-2px);
-}
-
-.mobile-menu-button {
-    display: none;
-    background: transparent;
-    border: none;
-    color: #4b5563;
-    font-size: 1.5em;
-    cursor: pointer;
-    padding: 5px;
-}
-
-/* Active link styling */
-.nav-link.active {
-    background: #e0e7ff; /* Light blue background */
-    color: #2563eb; /* Modern blue */
-    font-weight: 500;
-}
-
-/* Responsive design */
 @media (max-width: 1024px) {
-    .navbar-search input {
-        width: 150px;
-    }
-}
-
-@media (max-width: 768px) {
     .navbar-menu {
         display: none;
         position: absolute;
@@ -250,34 +211,13 @@
         flex-direction: column;
     }
 
-    .nav-link {
-        padding: 15px;
-        border-radius: 8px;
-    }
-
     .mobile-menu-button {
         display: block;
     }
 
-    .navbar-search {
+    .navbar-search, .logout-link {
         display: none;
     }
-}
-
-/* Animations */
-@keyframes slideDown {
-    from {
-        transform: translateY(-10px);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-.nav-link {
-    animation: slideDown 0.3s ease;
 }
 </style>
 
