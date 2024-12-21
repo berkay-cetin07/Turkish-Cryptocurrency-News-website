@@ -63,7 +63,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['login'])) {
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background-color: #1b4332; /* Tamamen kapalı yeşil */
             font-family: 'Arial', sans-serif;
         }
 

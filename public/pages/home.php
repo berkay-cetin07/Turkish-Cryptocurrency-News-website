@@ -1,26 +1,13 @@
 <?php
-require_once __DIR__ . '/../../src/config/config.php';
-require_once __DIR__ . '/../../src/includes/functions.php';
+require_once __DIR__ . '/../../src/utils/crypto_utils.php';
 
-// Fetch today's data for the three coins
-$coins = [
-    'Bitcoin' => BTC_COIN_ID,
-    'Ethereum' => ETH_COIN_ID,
-    'Dogecoin' => DOGE_COIN_ID
-];
-
+$coins = ['BTC', 'ETH', 'DOGE'];
 $todayData = [];
-foreach ($coins as $coinName => $coinId) {
-    $data = getTodayOhlcv($coinId);
-    if (!empty($data) && isset($data[0])) {
-        $todayData[$coinName] = [
-            'open' => $data[0]['open'],
-            'high' => $data[0]['high'],
-            'low'  => $data[0]['low'],
-            'close'=> $data[0]['close']
-        ];
-    } else {
-        $todayData[$coinName] = null;
+
+foreach ($coins as $coin) {
+    $data = CryptoUtils::getTodayOhlcv($coin);
+    if ($data) {
+        $todayData[$coin] = $data;
     }
 }
 ?>

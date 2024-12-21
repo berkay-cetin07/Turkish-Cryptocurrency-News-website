@@ -1,5 +1,5 @@
 <?php
-ob_start(); // Çıkışı tamponlamaya başlar
+ob_start();
 require_once __DIR__ . '/../src/config/config.php';
 require_once __DIR__ . '/../src/includes/functions.php';
 require_once __DIR__ . '/../src/includes/session.php';
@@ -13,7 +13,7 @@ if (isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], '/redirect
 // Default page routing logic
 $page = isset($_GET['page']) ? $_GET['page'] : 'home';
 
-$allowed_pages = ['home', 'news', 'coin-values', 'search-results', 'charts', 'upload', 'exchange-status','redirect', 'login', 'logout', 'admin'];
+$allowed_pages = ['home', 'news', 'coin-values', 'search-results', 'charts', 'support', 'exchange-status','redirect', 'login', 'logout', 'admin', 'price-checker'];
 
 
 // Login sayfasına yönlendirme kontrolü
