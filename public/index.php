@@ -4,9 +4,16 @@ require_once __DIR__ . '/../src/config/config.php';
 require_once __DIR__ . '/../src/includes/functions.php';
 require_once __DIR__ . '/../src/includes/session.php';
 
+// Handle the `redirect.php` separately
+if (isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], '/redirect.php') !== false) {
+    include __DIR__ . '/pages/redirect.php'; 
+    exit;
+}
+
+// Default page routing logic
 $page = isset($_GET['page']) ? $_GET['page'] : 'home';
 
-$allowed_pages = ['home', 'news', 'coin-values', 'search-results', 'charts', 'upload', 'login', 'logout', 'admin'];
+$allowed_pages = ['home', 'news', 'coin-values', 'search-results', 'charts', 'upload', 'exchange-status','redirect', 'login', 'logout', 'admin'];
 
 
 // Login sayfasına yönlendirme kontrolü
@@ -15,12 +22,10 @@ if (!isset($_SESSION['username']) && $page !== 'login') {
     exit;
 }
 
-// Sayfa izinlerini kontrol et
 if (!in_array($page, $allowed_pages)) {
     $page = 'home';
 }
 
-// Header dahil edilir
 include __DIR__ . '/../src/includes/header.php';
 
 // Yalnızca giriş yapmış kullanıcılar için navbar'ı göster
