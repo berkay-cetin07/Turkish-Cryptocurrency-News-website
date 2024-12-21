@@ -34,6 +34,12 @@
                     </a>
                 </li>
                 <li>
+                    <a href="/?page=price-checker" class="nav-link">
+                        <span class="nav-icon">🔍</span>
+                        <span>Fiyat Kontrolü</span>
+                    </a>
+                </li>
+                <li>
                     <a href="/?page=upload" class="nav-link">
                         <span class="nav-icon">📤</span>
                         <span>Destek Portalı</span>
