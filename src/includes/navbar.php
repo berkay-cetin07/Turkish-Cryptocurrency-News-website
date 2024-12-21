@@ -1,3 +1,6 @@
+
+
+
 <nav class="navbar">
     <div class="navbar-container">
         <div class="navbar-brand">
@@ -60,6 +63,16 @@
             </form>
         </div>
 
+        <!-- Logout Button -->
+        <div class="navbar-logout">
+            <?php if (isset($_SESSION['username'])): ?>
+                <a href="/?page=logout" class="nav-link logout-btn">
+                    <span class="nav-icon">🔒</span>
+                    <span>Çıkış Yap</span>
+                </a>
+            <?php endif; ?>
+        </div>
+
         <!-- Mobile menu button -->
         <button class="mobile-menu-button">
             <span class="menu-icon">☰</span>
@@ -74,7 +87,7 @@
     position: sticky;
     top: 0;
     z-index: 1000;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
     border-bottom: 1px solid #e9ecef;
 }
 
@@ -92,7 +105,7 @@
     display: flex;
     align-items: center;
     text-decoration: none;
-    color: #2563eb;  /* Modern blue */
+    color: #2563eb; /* Modern blue */
     font-size: 1.5em;
     font-weight: 600;
 }
@@ -114,7 +127,7 @@
 .nav-link {
     display: flex;
     align-items: center;
-    color: #4b5563;  /* Dark gray */
+    color: #4b5563; /* Dark gray */
     text-decoration: none;
     padding: 10px 15px;
     border-radius: 8px;
@@ -123,8 +136,8 @@
 }
 
 .nav-link:hover {
-    background: #f3f4f6;  /* Light gray background */
-    color: #2563eb;  /* Modern blue */
+    background: #f3f4f6; /* Light gray background */
+    color: #2563eb; /* Modern blue */
     transform: translateY(-2px);
 }
 
@@ -171,6 +184,27 @@
     color: #2563eb;
 }
 
+/* Logout button styling */
+.navbar-logout {
+    margin-left: 20px;
+}
+
+.navbar-logout .logout-btn {
+    font-weight: 600;
+    color: #4b5563; /* Dark gray */
+    text-decoration: none;
+    padding: 10px 15px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    font-size: 0.9em;
+}
+
+.navbar-logout .logout-btn:hover {
+    background: #f3f4f6; /* Light gray background */
+    color: #2563eb; /* Modern blue */
+    transform: translateY(-2px);
+}
+
 .mobile-menu-button {
     display: none;
     background: transparent;
@@ -183,8 +217,8 @@
 
 /* Active link styling */
 .nav-link.active {
-    background: #e0e7ff;  /* Light blue background */
-    color: #2563eb;  /* Modern blue */
+    background: #e0e7ff; /* Light blue background */
+    color: #2563eb; /* Modern blue */
     font-weight: 500;
 }
 
