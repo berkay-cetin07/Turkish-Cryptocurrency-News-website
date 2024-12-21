@@ -42,6 +42,12 @@
                         <span>Destek Portalı</span>
                     </a>
                 </li>
+                <li>
+                    <a href="/?page=graph-generator" class="nav-link">
+                        <span class="nav-icon">⚙️</span>
+                        <span>Grafik Oluşturucu</span>
+                    </a>
+                </li>
             </ul>
         </div>
 
@@ -73,6 +79,8 @@
         </button>
     </div>
 </nav>
+
+
 
 <style>
 .navbar {

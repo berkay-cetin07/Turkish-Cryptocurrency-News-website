@@ -6,8 +6,7 @@ require_once __DIR__ . '/../src/includes/session.php';
 
 $page = isset($_GET['page']) ? $_GET['page'] : 'home';
 
-$allowed_pages = ['home', 'news', 'coin-values', 'search-results', 'charts', 'upload', 'login', 'logout', 'admin'];
-
+$allowed_pages = ['home', 'news', 'coin-values', 'search-results', 'charts', 'upload', 'login', 'logout', 'admin', 'graph-generator'];
 
 // Login sayfasına yönlendirme kontrolü
 if (!isset($_SESSION['username']) && $page !== 'login') {
