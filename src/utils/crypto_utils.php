@@ -1,57 +1,57 @@
 <?php
-require_once __DIR__ . '/../../vendor/autoload.php';
-
-use ccxt\Exchange;
-use ccxt\binance;
-
 class CryptoUtils {
-    private static $exchange = null;
+    private static $api_base = 'https://api.binance.com/api/v3';
     
-    private static function getExchange() {
-        if (self::$exchange === null) {
-            self::$exchange = new binance([
-                'enableRateLimit' => true,
-                'timeout' => 30000,
-            ]);
-        }
-        return self::$exchange;
-    }
-
     public static function debugLog($message) {
         echo "<span style='color: #212529;'>$message</span>";
     }
 
+    private static function makeRequest($endpoint) {
+        $ch = curl_init(self::$api_base . $endpoint);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HEADER, false);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        
+        $response = curl_exec($ch);
+        $error = curl_error($ch);
+        curl_close($ch);
+        
+        if ($error) {
+            throw new Exception("CURL Error: " . $error);
+        }
+        
+        return json_decode($response, true);
+    }
+
     public static function getSelectedCoinsData() {
         try {
-            $exchange = self::getExchange();
-            $symbols = ['BTC/USDT', 'ETH/USDT', 'DOGE/USDT'];
+            $symbols = ['BTCUSDT', 'ETHUSDT', 'DOGEUSDT'];
             $results = [];
 
             foreach ($symbols as $symbol) {
                 try {
-                    $ticker = $exchange->fetch_ticker($symbol);
-                    $timestamp = is_float($ticker['timestamp']) 
-                        ? (int)round($ticker['timestamp']) 
-                        : $ticker['timestamp'];
-                        
-                    $results[str_replace('/USDT', '', $symbol)] = [
+                    // Get 24hr ticker price change statistics
+                    $ticker = self::makeRequest("/ticker/24hr?symbol=$symbol");
+                    
+                    $coinName = str_replace('USDT', '', $symbol);
+                    $results[$coinName] = [
                         'info' => [
-                            'name' => str_replace('/USDT', '', $symbol),
+                            'name' => $coinName,
                             'symbol' => $symbol,
-                            'price_usd' => $ticker['last'],
-                            'market_cap_usd' => null, // Binance doesn't provide this
-                            'volume_24h_usd' => $ticker['quoteVolume'],
-                            'percent_change_24h' => $ticker['percentage'],
-                            'last_updated' => date('Y-m-d H:i:s', (int)($timestamp / 1000))
+                            'price_usd' => floatval($ticker['lastPrice']),
+                            'market_cap_usd' => null,
+                            'volume_24h_usd' => floatval($ticker['quoteVolume']),
+                            'percent_change_24h' => floatval($ticker['priceChangePercent']),
+                            'last_updated' => date('Y-m-d H:i:s', floor($ticker['closeTime'] / 1000))
                         ],
                         'markets' => []
                     ];
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     self::debugLog("Error fetching $symbol: " . $e->getMessage());
                 }
             }
             return $results;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             self::debugLog("Exchange error: " . $e->getMessage());
             return [];
         }
@@ -59,38 +59,28 @@ class CryptoUtils {
 
     public static function getTodayOhlcv($symbol) {
         try {
-            $exchange = self::getExchange();
-            $timeframe = '1d';
-            $symbol = strtoupper($symbol) . '/USDT';
+            $symbol = strtoupper($symbol) . 'USDT';
+            $interval = '1d';
+            $limit = 1;
             
-            $ohlcv = $exchange->fetch_ohlcv($symbol, $timeframe, null, 1);
+            // Get Kline/Candlestick data
+            $klines = self::makeRequest("/klines?symbol=$symbol&interval=$interval&limit=$limit");
             
-            if (!empty($ohlcv)) {
-                $data = $ohlcv[0];
-                $timestamp = is_float($data[0]) 
-                    ? (int)round($data[0]) 
-                    : $data[0];
-                    
+            if (!empty($klines)) {
+                $data = $klines[0];
                 return [
-                    'time_open' => $timestamp,
-                    'open' => $data[1],
-                    'high' => $data[2],
-                    'low' => $data[3],
-                    'close' => $data[4],
-                    'volume' => $data[5]
+                    'time_open' => $data[0],
+                    'open' => floatval($data[1]),
+                    'high' => floatval($data[2]),
+                    'low' => floatval($data[3]),
+                    'close' => floatval($data[4]),
+                    'volume' => floatval($data[5])
                 ];
             }
             return null;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             self::debugLog("OHLCV error: " . $e->getMessage());
             return null;
         }
-    }
-
-    private static function formatTimestamp($timestamp) {
-        if (is_float($timestamp)) {
-            return (int)round($timestamp);
-        }
-        return $timestamp;
     }
 }

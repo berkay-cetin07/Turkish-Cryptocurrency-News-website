@@ -119,7 +119,7 @@ if (file_exists($uploadDir)) {
                     <p>Maksimum dosya boyutu: 10MB</p>
                 </div>
                 
-                <form action="/?page=upload" method="post" enctype="multipart/form-data">
+                <form action="/?page=support" method="post" enctype="multipart/form-data">
                     <div class="file-upload-wrapper">
                         <input type="file" name="fileToUpload" id="fileToUpload" class="file-input" required>
                         <label for="fileToUpload" class="file-label">
