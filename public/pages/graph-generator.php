@@ -8,12 +8,10 @@ require_once __DIR__ . '/../../src/includes/functions.php';
 
 // Kara liste
 $blacklist = [
-    '169.254.169.254',          // AWS Metadata
-    'metadata.google.internal', // Google Cloud Metadata
-    '127.0.0.1',                // Localhost IP
-    'localhost',                // Localhost Domain
-    'internal.example.com',     // Özel Dahili Domain
-    '::1'                       // IPv6 Localhost
+    '127.0.0.1',
+    'localhost',
+    '0.0.0.0',
+    '::1'
 ];
 
 // Kara liste kontrol fonksiyonu
