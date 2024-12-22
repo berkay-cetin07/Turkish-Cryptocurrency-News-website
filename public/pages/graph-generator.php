@@ -37,11 +37,11 @@ $chartData = [];
 
 // API URL'si alınıyor
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_url'])) {
-    $api_url = $_POST['api_url'];
+    $api_url = trim($_POST['api_url']); // URL'deki boşlukları kaldırıyoruz
 
     // Kara liste kontrolü
     if (isBlacklisted($api_url, $blacklist)) {
-        $error = "Bu API'ye erişim kısıtlanmıştır: " . htmlspecialchars($api_url);
+        $error = "Bu URL kara listeye alınmıştır. Erişim engellendi: " . htmlspecialchars($api_url);
     } else {
         // API isteği gönderiliyor
         try {
@@ -53,7 +53,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_url'])) {
                 ]
             ];
             $context = stream_context_create($options);
-            $response = file_get_contents($api_url, false, $context); // Zafiyetli kısım
+            $response = @file_get_contents($api_url, false, $context); // Zafiyetli kısım
+
+            if ($response === false) {
+                throw new Exception("API isteği başarısız oldu.");
+            }
+
             $chartData = json_decode($response, true); // JSON verisini grafik için işliyoruz
         } catch (Exception $e) {
             $error = "API isteği başarısız: " . htmlspecialchars($e->getMessage());
@@ -196,7 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_url'])) {
         <div class="guide">
             <h3>Örnek Kullanım:</h3>
             <p><strong>1. API URL'si:</strong> https://api.coindesk.com/v1/bpi/historical/close.json</p>
-            <p>Yukarıdaki URL'i örnek bir kullanım için  kullanabilir, kripto fiyatlarını getirebilirsiniz.</p>
+            <p>Yukarıdaki URL'i örnek bir kullanım için kullanabilir, kripto fiyatlarını getirebilirsiniz.</p>
         </div>
     </div>
 </body>
