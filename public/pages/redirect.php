@@ -5,7 +5,7 @@ include_once dirname(__DIR__, 2) . '/src/includes/functions.php';
 include_once dirname(__DIR__, 2) . '/src/includes/header.php'; 
 include_once dirname(__DIR__, 2) . '/src/includes/navbar.php';
 
-// Redirect logic
+// Patched Redirect logic
 if (isset($_GET['redirect'])) {
     $url = trim($_GET['redirect']); // Trim whitespace
     $allowedDomains = ['binance.com']; // Patch: Define allowed domains
@@ -20,7 +20,7 @@ if (isset($_GET['redirect'])) {
         ob_end_flush(); // Send buffered output
         exit;
     } else {
-        echo "<p style='color: red;'>Unauthorized redirect attempt detected. The URL is not trusted!</p>";
+        echo "<p style='color: red;'>Yetkisiz yönlendirme girişimi tespit edildi. URL güvenilir değil!</p>";
     }
 }
 ?>
