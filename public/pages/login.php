@@ -1,74 +1,60 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) {
-    session_start(); // Start the session if not already started
+    session_start(); // Eğer oturum yoksa başlat
 }
 
-require_once __DIR__ . '/../../src/db.php'; // Include the database connection file
+require_once __DIR__ . '/../../src/db.php';
 
-// If the user is already logged in, redirect to the appropriate page
+// Kullanıcı zaten giriş yaptıysa ana sayfaya yönlendir
 if (isset($_SESSION['username'])) {
     if ($_SESSION['role'] === 'admin') {
-        header("Location: /admin.php"); // Redirect admin users to the admin panel
+        header("Location: /admin.php"); // Admin kullanıcı admin paneline yönlendirilir
     } else {
-        header("Location: /?page=home"); // Redirect normal users to the home page
+        header("Location: /?page=home"); // Normal kullanıcı ana sayfaya yönlendirilir
     }
-    exit; // Stop further execution
+    exit;
 }
 
-// Variable to store error messages
+// Hata mesajlarını tutacak değişkenler
 $error = "";
 
-// Handle the login process
+// Giriş işlemi
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['login'])) {
-    // Collect user input
     $username = $_POST['username'];
     $password = $_POST['password'];
 
-    // Use a prepared statement to prevent SQL injection
-    $query = "SELECT * FROM users WHERE username = :username AND password = :password";
+    $query = "SELECT * FROM users WHERE username = '$username' AND password = '$password'";
 
     try {
-        // Prepare the SQL statement
-        $stmt = $conn->prepare($query);
+        $result = $conn->query($query);
 
-        // Bind parameters to the query
-        $stmt->bindParam(':username', $username, PDO::PARAM_STR); // Bind the username as a string
-        $stmt->bindParam(':password', $password, PDO::PARAM_STR); // Bind the password as a string
+        if ($result && $result->rowCount() > 0) {
+            $user = $result->fetch(PDO::FETCH_ASSOC);
+            $_SESSION['username'] = $user['username'];
+            $_SESSION['role'] = $user['role'];
 
-        // Execute the prepared statement
-        $stmt->execute();
-
-        // Check if the user exists
-        if ($stmt->rowCount() > 0) {
-            $user = $stmt->fetch(PDO::FETCH_ASSOC); // Fetch user details
-            $_SESSION['username'] = $user['username']; // Set the username in the session
-            $_SESSION['role'] = $user['role']; // Set the user's role in the session
-
-            // Redirect the user based on their role
             if ($user['role'] === 'admin') {
-                header("Location: /admin.php"); // Admin users are redirected to the admin panel
+                header("Location: /admin.php");
             } else {
-                header("Location: /?page=home"); // Normal users are redirected to the home page
+                header("Location: /?page=home");
             }
-            exit; // Stop further execution
+            exit;
         } else {
-            // Display an error message for invalid credentials
-            $error = "Invalid username or password.";
+            $error = "Geçersiz kullanıcı adı veya şifre.";
         }
     } catch (PDOException $e) {
-        // Catch database errors and display a generic error message
-        $error = "An error occurred while processing your request. Please try again later.";
+        $error = "SQL Hatası: " . $e->getMessage();
     }
 }
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Login</title>
+    <title>Kullanıcı Giriş</title>
     <style>
-        /* General styling for the page */
+        /* Genel Arka Plan */
         body {
             margin: 0;
             padding: 0;
@@ -80,9 +66,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['login'])) {
             font-family: 'Arial', sans-serif;
         }
 
-        
+        /* Login Kutusu */
         .login-container {
-            background-color: rgba(255, 255, 255, 0.9);
+            background-color: rgba(255, 255, 255, 0.9); /* Beyaz kutu */
             border-radius: 20px;
             padding: 40px 30px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
@@ -91,28 +77,28 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['login'])) {
             position: relative;
         }
 
-        
+        /* Profil İkonu */
         .login-container .profile-icon {
             width: 80px;
             height: 80px;
-            background-color: #ffffff;
+            background-color: #ffffff; /* Beyaz yuvarlak */
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
-            color: #1b4332;
+            color: #1b4332; /* Koyu yeşil figür */
             font-size: 40px;
             margin: -60px auto 20px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
         }
 
         .login-container h2 {
-            color: #1b4332;
+            color: #1b4332; /* Başlık için koyu yeşil renk */
             margin-bottom: 30px;
             font-size: 24px;
         }
 
-        
+        /* Giriş Alanları */
         .form input {
             width: 100%;
             padding: 12px;
@@ -129,11 +115,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['login'])) {
             border-color: #457fca;
         }
 
-        
+        /* Giriş Butonu */
         .form .btn {
             width: 100%;
             padding: 12px;
-            background-color: #457fca;
+            background-color: #457fca; /* Canlı mavi */
             border: none;
             border-radius: 8px;
             color: white;
@@ -152,7 +138,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['login'])) {
             margin-bottom: 15px;
         }
 
-        
+        /* Alt Bilgi */
         .footer {
             margin-top: 20px;
             text-align: center;
@@ -164,17 +150,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['login'])) {
 <body>
     <div class="login-container">
         <div class="profile-icon">
-            &#128100; 
+            &#128100; <!-- Anonim insan figürü -->
         </div>
-        <h2>Giriş Yapın</h2>
+        <h2>Giriş Yap</h2>
         <?php if ($error) echo "<p class='error'>$error</p>"; ?>
         <form method="POST" class="form">
-            <input type="text" name="username" placeholder="Username" required>
-            <input type="password" name="password" placeholder="Password" required>
-            <button type="submit" name="login" class="btn">Login</button>
+            <input type="text" name="username" placeholder="Kullanıcı Adı" required>
+            <input type="password" name="password" placeholder="Şifre" required>
+            <button type="submit" name="login" class="btn">Giriş Yap</button>
         </form>
-        <div class="footer">
-        </div>
+    <div class="footer">
     </div>
 </body>
 </html>
