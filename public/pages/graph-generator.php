@@ -1,31 +1,32 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+    session_start(); 
 }
 
 require_once __DIR__ . '/../../src/config/config.php';
 require_once __DIR__ . '/../../src/includes/functions.php';
 
-// Kara liste
-$blacklist = [
-    '127.0.0.1',
-    'localhost',
-    '0.0.0.0',
-    '::1'
+// Define the whitelist
+$whitelist = [
+    'coindesk.com' // Only allow URLs from this domain
 ];
 
-// Kara liste kontrol fonksiyonu
-function isBlacklisted($url, $blacklist) {
-    $parsedUrl = parse_url($url);
+// Function to check if a URL is whitelisted
+function isWhitelisted($url, $whitelist) {
+    $parsedUrl = parse_url($url); // Parse the URL to extract its components
     if (!$parsedUrl || !isset($parsedUrl['host'])) {
-        return false; // Geçersiz bir URL kontrol edilmez
+        return false; // Return false if the URL is invalid or lacks a host component
     }
 
-    foreach ($blacklist as $blocked) {
-        if (strpos($parsedUrl['host'], $blocked) !== false) {
-            return true;
+    $host = $parsedUrl['host']; // Get the host of the URL
+
+    // Check if the host matches or is a subdomain of any whitelisted domain
+    foreach ($whitelist as $allowed) {
+        if ($host === $allowed || substr($host, -strlen(".$allowed")) === ".$allowed") {
+            return true; // Return true if the host matches the whitelist
         }
     }
+
     return false;
 }
 
@@ -33,33 +34,32 @@ $error = '';
 $response = '';
 $chartData = [];
 
-// API URL'si alınıyor
+// Handle API URL submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_url'])) {
-    $api_url = trim($_POST['api_url']); // URL'deki boşlukları kaldırıyoruz
+    $api_url = trim($_POST['api_url']); // Remove unnecessary spaces from the URL
 
-    // Kara liste kontrolü
-    if (isBlacklisted($api_url, $blacklist)) {
-        $error = "Bu URL kara listeye alınmıştır. Erişim engellendi: " . htmlspecialchars($api_url);
+    // Check if the URL is whitelisted
+    if (!isWhitelisted($api_url, $whitelist)) {
+        $error = "API isteği başarısız."; // General error message for all non-whitelisted URLs
     } else {
-        // API isteği gönderiliyor
+        // Attempt to fetch data from the API
         try {
-            // HTTP başlıkları ekleyerek istek gönderiyoruz
             $options = [
                 'http' => [
-                    'method' => 'GET',
-                    'header' => 'User-Agent: CustomClient/1.0'
+                    'method' => 'GET', // Use a GET request
+                    'header' => 'User-Agent: CustomClient/1.0' // Add a custom user-agent
                 ]
             ];
-            $context = stream_context_create($options);
-            $response = @file_get_contents($api_url, false, $context); // Zafiyetli kısım
+            $context = stream_context_create($options); // Create a stream context for the request
+            $response = @file_get_contents($api_url, false, $context); // Make the API call
 
             if ($response === false) {
-                throw new Exception("API isteği başarısız oldu.");
+                throw new Exception("API isteği başarısız oldu."); // Throw an exception if the request fails
             }
 
-            $chartData = json_decode($response, true); // JSON verisini grafik için işliyoruz
+            $chartData = json_decode($response, true); // Decode the JSON response into an associative array
         } catch (Exception $e) {
-            $error = "API isteği başarısız: " . htmlspecialchars($e->getMessage());
+            $error = "API isteği başarısız."; // Display a general error message if the request fails
         }
     }
 }
@@ -157,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_url'])) {
         <?php if ($error): ?>
             <p class="error"><?= htmlspecialchars($error) ?></p>
         <?php endif; ?>
-        
+
         <?php if ($chartData && isset($chartData['bpi'])): ?>
             <canvas id="cryptoChart"></canvas>
             <script>
@@ -194,8 +194,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_url'])) {
                 });
             </script>
         <?php endif; ?>
-        
-        <!-- Kullanım Rehberi -->
+
         <div class="guide">
             <h3>Örnek Kullanım:</h3>
             <p><strong>1. API URL'si:</strong> https://api.coindesk.com/v1/bpi/historical/close.json</p>
