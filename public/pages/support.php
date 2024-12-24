@@ -2,18 +2,20 @@
 require_once __DIR__ . '/../../src/config/config.php';
 require_once __DIR__ . '/../../src/includes/functions.php';
 
+// SECURITY RISK: Upload directory is publicly accessible
 $uploadDir = __DIR__ . '/../uploads/';  // Physical path
 $webAccessPath = '/uploads/';  // Web-accessible path
 $message = '';
 
-// VULNERABLE: Handle direct file access with path traversal
+// CRITICAL VULNERABILITY: Directory Traversal
+// This code allows attackers to read any file on the system by manipulating the 'file' parameter
 if (isset($_GET['file'])) {
     $requestedFile = $_GET['file'];
-    // VULNERABLE: No path sanitization
+    // SECURITY RISK: No path sanitization or validation
+    // Attacker can use '../' to access files outside the intended directory
     readfile($requestedFile);
     exit;
 }
-
 
 // Vulnerable file upload handling
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["fileToUpload"])) {
@@ -21,10 +23,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["fileToUpload"])) {
     $targetFile = $uploadDir . $fileName;
     $uploadError = $_FILES["fileToUpload"]["error"];
     
-    // Log upload attempt
-    error_log("Upload attempt - File: " . $fileName . " Size: " . $_FILES["fileToUpload"]["size"] . " bytes");
-
-    if ($uploadError !== UPLOAD_ERR_OK) {
+    // VULNERABILITY: Weak File Extension Validation
+    // 1. Uses strpos() which can be bypassed (e.g., 'malicious.php.jpg')
+    // 2. Doesn't check actual file content/MIME type
+    $allowedExtensions = array('.pdf', '.doc', '.docx', '.jpg', '.png');
+    $isAllowedFile = false;
+    foreach ($allowedExtensions as $ext) {
+        if (strpos(strtolower($fileName), $ext) !== false) {
+            $isAllowedFile = true;
+            break;
+        }
+    }
+    
+    if (!$isAllowedFile) {
+        $message = "Sadece PDF, DOC, DOCX, JPG ve PNG dosyaları kabul edilmektedir.";
+        error_log("Upload failed - Invalid file type - File: " . $fileName);
+    } else if ($uploadError !== UPLOAD_ERR_OK) {
         // Log and handle specific upload errors
         switch ($uploadError) {
             case UPLOAD_ERR_INI_SIZE:
@@ -57,7 +71,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["fileToUpload"])) {
                 break;
         }
     } else {
-        // Check if upload directory exists and is writable
+        // SECURITY RISK: Race Condition Possible
+        // Time between checks and actual file operations could allow for exploitation
         if (!file_exists($uploadDir)) {
             error_log("Upload failed - Directory does not exist: " . $uploadDir);
             $message = "Sistem yapılandırma hatası. Lütfen daha sonra tekrar deneyin.";
@@ -83,7 +98,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["fileToUpload"])) {
     }
 }
 
-// Get list of uploaded files
+// SECURITY RISK: Information Disclosure
+// Displays all uploaded files without access control
 $uploadedFiles = [];
 if (file_exists($uploadDir)) {
     $uploadedFiles = array_diff(scandir($uploadDir), array('.', '..'));
