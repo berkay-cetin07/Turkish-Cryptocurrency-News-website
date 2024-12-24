@@ -1,48 +1,54 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) {
-    session_start(); // Eğer oturum yoksa başlat
+    session_start(); // Start the session if it hasn't been started already
 }
 
-require_once __DIR__ . '/../../src/db.php';
+require_once __DIR__ . '/../../src/db.php'; // Include the database connection file
 
-// Kullanıcı zaten giriş yaptıysa ana sayfaya yönlendir
+// If the user is already logged in, redirect them to the appropriate page
 if (isset($_SESSION['username'])) {
     if ($_SESSION['role'] === 'admin') {
-        header("Location: /admin.php"); // Admin kullanıcı admin paneline yönlendirilir
+        header("Location: /admin.php"); // Redirect admin users to the admin panel
     } else {
-        header("Location: /?page=home"); // Normal kullanıcı ana sayfaya yönlendirilir
+        header("Location: /?page=home"); // Redirect normal users to the homepage
     }
-    exit;
+    exit; // Stop further script execution
 }
 
-// Hata mesajlarını tutacak değişkenler
+// Variable to store error messages
 $error = "";
 
-// Giriş işlemi
+// Handle the login process
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['login'])) {
     $username = $_POST['username'];
     $password = $_POST['password'];
 
+    // Vulnerable SQL query that directly includes user input without proper validation
     $query = "SELECT * FROM users WHERE username = '$username' AND password = '$password'";
 
     try {
+        // Execute the query without parameterization
         $result = $conn->query($query);
 
+        // If a matching user is found, log them in
         if ($result && $result->rowCount() > 0) {
             $user = $result->fetch(PDO::FETCH_ASSOC);
             $_SESSION['username'] = $user['username'];
             $_SESSION['role'] = $user['role'];
 
+            // Redirect based on user role
             if ($user['role'] === 'admin') {
                 header("Location: /admin.php");
             } else {
                 header("Location: /?page=home");
             }
-            exit;
+            exit; // Stop further execution
         } else {
+            // Error message for invalid credentials
             $error = "Geçersiz kullanıcı adı veya şifre.";
         }
     } catch (PDOException $e) {
+        // Handle SQL errors
         $error = "SQL Hatası: " . $e->getMessage();
     }
 }
@@ -54,7 +60,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['login'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kullanıcı Giriş</title>
     <style>
-        /* Genel Arka Plan */
+        /* General Background Styling */
         body {
             margin: 0;
             padding: 0;
@@ -66,9 +72,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['login'])) {
             font-family: 'Arial', sans-serif;
         }
 
-        /* Login Kutusu */
+        /* Login Box Styling */
         .login-container {
-            background-color: rgba(255, 255, 255, 0.9); /* Beyaz kutu */
+            background-color: rgba(255, 255, 255, 0.9); /* White box */
             border-radius: 20px;
             padding: 40px 30px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
@@ -77,28 +83,28 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['login'])) {
             position: relative;
         }
 
-        /* Profil İkonu */
+        /* Profile Icon Styling */
         .login-container .profile-icon {
             width: 80px;
             height: 80px;
-            background-color: #ffffff; /* Beyaz yuvarlak */
+            background-color: #ffffff; /* White circular background */
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
-            color: #1b4332; /* Koyu yeşil figür */
+            color: #1b4332; /* Dark green figure */
             font-size: 40px;
             margin: -60px auto 20px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
         }
 
         .login-container h2 {
-            color: #1b4332; /* Başlık için koyu yeşil renk */
+            color: #1b4332; /* Dark green title */
             margin-bottom: 30px;
             font-size: 24px;
         }
 
-        /* Giriş Alanları */
+        /* Input Fields */
         .form input {
             width: 100%;
             padding: 12px;
@@ -115,11 +121,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['login'])) {
             border-color: #457fca;
         }
 
-        /* Giriş Butonu */
+        /* Submit Button */
         .form .btn {
             width: 100%;
             padding: 12px;
-            background-color: #457fca; /* Canlı mavi */
+            background-color: #457fca; /* Vibrant blue */
             border: none;
             border-radius: 8px;
             color: white;
@@ -138,7 +144,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['login'])) {
             margin-bottom: 15px;
         }
 
-        /* Alt Bilgi */
+        /* Footer Styling */
         .footer {
             margin-top: 20px;
             text-align: center;
@@ -150,7 +156,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['login'])) {
 <body>
     <div class="login-container">
         <div class="profile-icon">
-            &#128100; <!-- Anonim insan figürü -->
+            &#128100; <!-- An anonymous person figure -->
         </div>
         <h2>Giriş Yap</h2>
         <?php if ($error) echo "<p class='error'>$error</p>"; ?>
