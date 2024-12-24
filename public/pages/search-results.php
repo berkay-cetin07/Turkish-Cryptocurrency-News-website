@@ -2,15 +2,15 @@
 require_once __DIR__ . '/../../src/config/config.php';
 require_once __DIR__ . '/../../src/includes/functions.php';
 
-// Get the search query from the URL
+// Retrieve the search query from the URL
 $q = isset($_GET['q']) ? trim($_GET['q']) : '';
 $results = [];
 
 if ($q !== '') {
-    // Fetch all news items
-    $allNews = getCryptoNews(); // This should return an array of [ 'title' => '', 'link' => '', 'description' => '' ]
+    // Fetch all news items from the database or API
+    $allNews = getCryptoNews(); // This function should return an array with fields: 'title', 'link', 'description'
 
-    // Filter results: case-insensitive search in title or description
+    // Filter results based on case-insensitive match in the title or description
     foreach ($allNews as $item) {
         $titleMatch = stripos($item['title'], $q) !== false;
         $descMatch  = stripos($item['description'], $q) !== false;
@@ -19,17 +19,19 @@ if ($q !== '') {
         }
     }
 
-    // --- SQLI  ---
+    // --- SQL Injection Vulnerability ---
     try {
-        // PDO ile veritabanı bağlantısı
+        // Connecting to the database using PDO
         $conn = new PDO("mysql:host=db;dbname=crypto_news_db", "crypto_user", "crypto_pass");
         $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        // **SQL Injection Zafiyeti** (Sömürülebilir)
-        $sql = "SELECT * FROM users WHERE username LIKE '%$q%' OR password LIKE '%$q%'"; // Kullanıcı tablosuna erişim
-        $stmt = $conn->query($sql);
+        // SQL Injection Vulnerability: User input is directly concatenated into the SQL query
+        // This makes the application susceptible to SQL injection attacks
+        $sql = "SELECT * FROM users WHERE username LIKE '%$q%' OR password LIKE '%$q%'"; // Query to search in the users table
+        $stmt = $conn->query($sql); // Executes the query without proper input sanitization
 
         if ($stmt->rowCount() > 0) {
+            // Displaying sensitive user data if records are found
             echo "<div class='sql-injection-results'>";
             echo "<h3>Kullanıcı Bilgileri</h3>";
             echo "<table border='1' cellpadding='5' cellspacing='0'>";
@@ -44,8 +46,9 @@ if ($q !== '') {
             echo "</table>";
             echo "</div>";
         }
-        // Kullanıcı tablosundan veri döndürmeyen sorgular için artık hiçbir mesaj yazdırılmıyor.
+        // If no data matches, no further action is taken
     } catch (PDOException $e) {
+        // Handle database errors securely
         echo "SQL Injection Testi Hatası: " . htmlspecialchars($e->getMessage());
     }
     // -------------------------------------------------------

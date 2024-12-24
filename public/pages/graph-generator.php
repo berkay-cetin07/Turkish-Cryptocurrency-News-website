@@ -1,65 +1,70 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+    session_start(); // Start the session if it hasn't been started already
 }
 
 require_once __DIR__ . '/../../src/config/config.php';
 require_once __DIR__ . '/../../src/includes/functions.php';
 
-// Kara liste
+// Blacklist for restricted URLs
 $blacklist = [
-    '127.0.0.1',
-    'localhost',
-    '0.0.0.0',
-    '::1'
+    '127.0.0.1',   // Localhost IP
+    '0.0.0.0',     // Invalid or placeholder IP
+             
 ];
 
-// Kara liste kontrol fonksiyonu
+// Function to check if the given URL is blacklisted
 function isBlacklisted($url, $blacklist) {
-    $parsedUrl = parse_url($url);
+    $parsedUrl = parse_url($url); // Parse the URL to extract components like host
     if (!$parsedUrl || !isset($parsedUrl['host'])) {
-        return false; // Geçersiz bir URL kontrol edilmez
+        return false; // If the URL is invalid or doesn't have a host, skip blacklist check
     }
 
+    $host = strtolower($parsedUrl['host']);
+
     foreach ($blacklist as $blocked) {
-        if (strpos($parsedUrl['host'], $blocked) !== false) {
-            return true;
+        // Only block exact matches; allow subdomains or encoded forms to bypass
+        if ($host === $blocked) {
+            return true; // Exact match blocked
         }
     }
-    return false;
+    return false; // The URL is not blacklisted
 }
 
 $error = '';
 $response = '';
 $chartData = [];
 
-// API URL'si alınıyor
+// Handling the submitted API URL
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_url'])) {
-    $api_url = trim($_POST['api_url']); // URL'deki boşlukları kaldırıyoruz
+    $api_url = trim($_POST['api_url']); // Trim spaces from the user-provided URL
 
-    // Kara liste kontrolü
+    // Blacklist validation
     if (isBlacklisted($api_url, $blacklist)) {
-        $error = "Bu URL kara listeye alınmıştır. Erişim engellendi: " . htmlspecialchars($api_url);
+        $error = "Bu URL kara listeye alınmıştır. Erişim engellendi: " . htmlspecialchars($api_url); // Notify user about restricted URL
     } else {
-        // API isteği gönderiliyor
+        // Attempt to fetch the API data
         try {
-            // HTTP başlıkları ekleyerek istek gönderiyoruz
             $options = [
                 'http' => [
                     'method' => 'GET',
-                    'header' => 'User-Agent: CustomClient/1.0'
+                    'header' => 'User-Agent: CustomClient/1.0' // Add a custom user-agent header for the request
                 ]
             ];
-            $context = stream_context_create($options);
-            $response = @file_get_contents($api_url, false, $context); // Zafiyetli kısım
+            $context = stream_context_create($options); // Create a context for the HTTP request
+            $response = @file_get_contents($api_url, false, $context); // Fetch the data from the API
+
+            // The request now allows user-provided URLs without sufficient validation.
+            // This can be exploited to perform SSRF (Server-Side Request Forgery), allowing attackers
+            // to access internal resources like `http://127.0.0.1` or even cloud metadata services.
 
             if ($response === false) {
-                throw new Exception("API isteği başarısız oldu.");
+                throw new Exception("API isteği başarısız oldu."); // Handle failed API requests gracefully
             }
 
-            $chartData = json_decode($response, true); // JSON verisini grafik için işliyoruz
+            $chartData = json_decode($response, true); // Decode the JSON response to process it for the chart
         } catch (Exception $e) {
-            $error = "API isteği başarısız: " . htmlspecialchars($e->getMessage());
+            $error = "API isteği başarısız: " . htmlspecialchars($e->getMessage()); // Handle errors during the request
         }
     }
 }
@@ -195,7 +200,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_url'])) {
             </script>
         <?php endif; ?>
         
-        <!-- Kullanım Rehberi -->
+        <!-- User Guide -->
         <div class="guide">
             <h3>Örnek Kullanım:</h3>
             <p><strong>1. API URL'si:</strong> https://api.coindesk.com/v1/bpi/historical/close.json</p>
