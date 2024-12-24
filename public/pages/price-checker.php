@@ -1,14 +1,14 @@
 <?php
 require_once __DIR__ . '/../../src/config/config.php';
 
-
 /**
- * Bypass blacklist
- * http://0177.0.0.1
-    http://2130706433
-    http://[::ffff:127.0.0.1]
-    http://127.1
-    http://127.0.1
+ * Security Note: This is a basic URL blacklist implementation.
+ * While it blocks common localhost references, it may be bypassed using:
+ * - Octal/Hex representations (e.g., http://0177.0.0.1)
+ * - Integer representation (e.g., http://2130706433)
+ * - IPv6 notation (e.g., http://[::ffff:127.0.0.1])
+ * - Partial IP resolution (e.g., http://127.1)
+ * 
  */
 function isUrlBlocked($url) {
     $blocked = array(
@@ -34,6 +34,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_url'])) {
     
     if (!isUrlBlocked($url)) {
         try {
+            // Security Risk: file_get_contents() with user input can lead to SSRF
+            // Allows an attacker to make requests from the server's perspective
             $response = file_get_contents($url);
             $result = $response;
         } catch (Exception $e) {
