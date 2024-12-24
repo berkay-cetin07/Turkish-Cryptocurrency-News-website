@@ -2,42 +2,85 @@
 require_once __DIR__ . '/../../src/config/config.php';
 require_once __DIR__ . '/../../src/includes/functions.php';
 
-$uploadDir = __DIR__ . '/../uploads/';  // Physical path
-$webAccessPath = '/uploads/';  // Web-accessible path
-$message = '';
+/**
+ * -------------------------------------------------------------------
+ * SECURITY IMPROVEMENTS (CWE-434 & PATH TRAVERSAL FIX + MIME CHECK)
+ * -------------------------------------------------------------------
+ *
+ * 1. Path Traversal Protection (same as before).
+ * 2. File Upload Restrictions:
+ *    - Check allowed extensions AND allowed MIME types.
+ *      (File extension alone can be spoofed; MIME type helps verify
+ *       the actual content).
+ *    - Use a random filename to avoid overwriting or direct script execution.
+ *    - (Optional) Virus scanning.
+ * 3. Output Escaping with htmlspecialchars().
+ * 4. Logging & Error Handling as before.
+ */
 
-// VULNERABLE: Handle direct file access with path traversal
+$uploadDir     = realpath(__DIR__ . '/../uploads/') . DIRECTORY_SEPARATOR; // Physical path
+$webAccessPath = '/uploads/';  // Web-accessible path
+$message       = '';
+
+// ------------------- FIXED PATH TRAVERSAL: Secure file download -------------------
 if (isset($_GET['file'])) {
     $requestedFile = $_GET['file'];
-    // VULNERABLE: No path sanitization
-    readfile($requestedFile);
+
+    // Prevent path traversal by resolving the absolute path and checking if it's within $uploadDir
+    $filePath = realpath($uploadDir . $requestedFile);
+
+    if ($filePath === false || strpos($filePath, $uploadDir) !== 0) {
+        // Log and return error - invalid or suspicious path
+        error_log("File access attempt outside of upload directory: " . $requestedFile);
+        header('HTTP/1.1 400 Bad Request');
+        echo 'Invalid file request.';
+        exit;
+    }
+
+    // If you want to force a download, add appropriate headers; for now, just readfile():
+    readfile($filePath);
     exit;
 }
 
-
-// Vulnerable file upload handling
+// ------------------- SECURE FILE UPLOAD HANDLING + MIME CHECK -------------------
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["fileToUpload"])) {
-    $fileName = basename($_FILES["fileToUpload"]["name"]);
-    $targetFile = $uploadDir . $fileName;
-    $uploadError = $_FILES["fileToUpload"]["error"];
+    // Allowed extensions
+    $allowedExtensions = ['pdf','doc','docx','jpg','jpeg','png'];
+
+    // Allowed MIME types corresponding to those extensions
+    // (Note that some files may have multiple valid MIME types,
+    //  so adjust as needed for your environment.)
+    $allowedMimeTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'image/jpeg',
+        'image/png'
+    ];
+
+    $uploadError  = $_FILES["fileToUpload"]["error"];
+    $originalName = $_FILES["fileToUpload"]["name"];
     
-    // Log upload attempt
-    error_log("Upload attempt - File: " . $fileName . " Size: " . $_FILES["fileToUpload"]["size"] . " bytes");
+    // Parse extension in lowercase
+    $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+
+    // Log the attempt
+    error_log("Upload attempt - File: " . $originalName . " Size: " . $_FILES["fileToUpload"]["size"] . " bytes");
 
     if ($uploadError !== UPLOAD_ERR_OK) {
-        // Log and handle specific upload errors
+        // Handle file upload errors
         switch ($uploadError) {
             case UPLOAD_ERR_INI_SIZE:
                 $message = "Dosya boyutu PHP'nin izin verdiği maksimum boyutu aşıyor.";
-                error_log("Upload failed - File too large (PHP INI limit) - File: " . $fileName);
+                error_log("Upload failed - File too large (PHP INI limit) - File: " . $originalName);
                 break;
             case UPLOAD_ERR_FORM_SIZE:
                 $message = "Dosya boyutu form limitini aşıyor.";
-                error_log("Upload failed - File too large (Form limit) - File: " . $fileName);
+                error_log("Upload failed - File too large (Form limit) - File: " . $originalName);
                 break;
             case UPLOAD_ERR_PARTIAL:
                 $message = "Dosya sadece kısmen yüklendi.";
-                error_log("Upload failed - Partial upload - File: " . $fileName);
+                error_log("Upload failed - Partial upload - File: " . $originalName);
                 break;
             case UPLOAD_ERR_NO_FILE:
                 $message = "Hiçbir dosya yüklenmedi.";
@@ -49,29 +92,46 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["fileToUpload"])) {
                 break;
             case UPLOAD_ERR_CANT_WRITE:
                 $message = "Dosya diske yazılamadı.";
-                error_log("Upload failed - Failed to write to disk - File: " . $fileName);
+                error_log("Upload failed - Failed to write to disk - File: " . $originalName);
                 break;
             default:
                 $message = "Bilinmeyen bir hata oluştu.";
-                error_log("Upload failed - Unknown error ({$uploadError}) - File: " . $fileName);
+                error_log("Upload failed - Unknown error ({$uploadError}) - File: " . $originalName);
                 break;
         }
     } else {
-        // Check if upload directory exists and is writable
-        if (!file_exists($uploadDir)) {
+        // Before checking extension, let's get the MIME type via finfo
+        // Make sure the Fileinfo extension is enabled in php.ini
+        $finfo    = new \finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->file($_FILES["fileToUpload"]["tmp_name"]);
+
+        // Check extension AND MIME type
+        if (!in_array($extension, $allowedExtensions)) {
+            $message = "Geçersiz dosya uzantısı hatası. Lütfen PDF, DOC, DOCX, JPG veya PNG yükleyin.";
+            error_log("Upload failed - Invalid file extension - File: " . $originalName);
+        } elseif (!in_array($mimeType, $allowedMimeTypes)) {
+            $message = "Geçersiz dosya türü hatası. Lütfen geçerli bir belge veya resim dosyası yükleyin.";
+            error_log("Upload failed - Invalid MIME type ($mimeType) - File: " . $originalName);
+        } elseif (!file_exists($uploadDir)) {
+            // Check if upload directory exists
             error_log("Upload failed - Directory does not exist: " . $uploadDir);
             $message = "Sistem yapılandırma hatası. Lütfen daha sonra tekrar deneyin.";
         } elseif (!is_writable($uploadDir)) {
+            // Check if directory is writable
             error_log("Upload failed - Directory not writable: " . $uploadDir);
             $message = "Sistem yapılandırma hatası. Lütfen daha sonra tekrar deneyin.";
         } else {
-            // Attempt to move the uploaded file
+            // Generate a unique file name to avoid collisions
+            $safeFileName = uniqid('upload_', true) . '.' . $extension;
+            $targetFile   = $uploadDir . $safeFileName;
+
+            // Move the file to the target
             if (move_uploaded_file($_FILES["fileToUpload"]["tmp_name"], $targetFile)) {
                 $message = "Belgeniz başarıyla yüklendi. Destek ekibimiz en kısa sürede sizinle iletişime geçecektir.";
-                error_log("Upload successful - File: " . $fileName . " saved to " . $targetFile);
+                error_log("Upload successful - Original: $originalName | Saved as: $safeFileName | MIME: $mimeType");
             } else {
                 $message = "Belge yüklenirken bir hata oluştu. Lütfen tekrar deneyiniz.";
-                error_log("Upload failed - move_uploaded_file failed - File: " . $fileName . " Target: " . $targetFile);
+                error_log("Upload failed - move_uploaded_file failed - File: $originalName Target: $targetFile");
                 
                 // Additional error information
                 $errorDetails = error_get_last();
@@ -83,10 +143,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["fileToUpload"])) {
     }
 }
 
-// Get list of uploaded files
+// ------------------- FETCH UPLOADED FILE LIST -------------------
 $uploadedFiles = [];
-if (file_exists($uploadDir)) {
-    $uploadedFiles = array_diff(scandir($uploadDir), array('.', '..'));
+if (is_dir($uploadDir)) {
+    $uploadedFiles = array_diff(scandir($uploadDir), ['.', '..']);
 }
 ?>
 
@@ -100,8 +160,8 @@ if (file_exists($uploadDir)) {
     </div>
 
     <?php if ($message): ?>
-        <div class="alert <?php echo strpos($message, 'hata') !== false ? 'alert-error' : 'alert-success'; ?>">
-            <?php echo htmlspecialchars($message); ?>
+        <div class="alert <?php echo (strpos($message, 'hata') !== false) ? 'alert-error' : 'alert-success'; ?>">
+            <?php echo htmlspecialchars($message, ENT_QUOTES, 'UTF-8'); ?>
         </div>
     <?php endif; ?>
 
@@ -119,6 +179,7 @@ if (file_exists($uploadDir)) {
                     <p>Maksimum dosya boyutu: 10MB</p>
                 </div>
                 
+                <!-- Note: 'page=support' is an example GET param; adjust as needed -->
                 <form action="/?page=support" method="post" enctype="multipart/form-data">
                     <div class="file-upload-wrapper">
                         <input type="file" name="fileToUpload" id="fileToUpload" class="file-input" required>
@@ -135,166 +196,68 @@ if (file_exists($uploadDir)) {
             </div>
         </div>
 
-        <!-- Replace the existing help-section div with this enhanced version -->
-<div class="help-section">
-    <h2>Nasıl Yardımcı Olabiliriz?</h2>
-    <div class="help-cards">
-        <div class="help-card">
-            <div class="card-icon">💼</div>
-            <h3>Hesap İşlemleri</h3>
-            <p>Hesap açma, doğrulama ve güvenlik ile ilgili belgelerinizi yükleyin.</p>
-            <div class="card-details">
-                <ul>
-                    <li>Kimlik doğrulama belgeleri</li>
-                    <li>Adres kanıtı</li>
-                    <li>Hesap bildirimleri</li>
-                </ul>
-            </div>
-        </div>
-        
-        <div class="help-card">
-            <div class="card-icon">💱</div>
-            <h3>İşlem Sorunları</h3>
-            <p>Bekleyen veya başarısız işlemlerinizle ilgili kanıtları paylaşın.</p>
-            <div class="card-details">
-                <ul>
-                    <li>İşlem makbuzları</li>
-                    <li>Hata bildirimleri</li>
-                    <li>Banka dekontları</li>
-                </ul>
-            </div>
-        </div>
-        
-        <div class="help-card">
-            <div class="card-icon">🔒</div>
-            <h3>Güvenlik</h3>
-            <p>Şüpheli işlem bildirimleri ve güvenlik endişeleriniz için belge yükleyin.</p>
-            <div class="card-details">
-                <ul>
-                    <li>Şüpheli işlem kanıtları</li>
-                    <li>Güvenlik ihlal raporları</li>
-                    <li>2FA sorunları</li>
-                </ul>
-            </div>
-        </div>
+        <!-- The help-section remains the same as before -->
+        <div class="help-section">
+            <h2>Nasıl Yardımcı Olabiliriz?</h2>
+            <div class="help-cards">
+                <div class="help-card">
+                    <div class="card-icon">💼</div>
+                    <h3>Hesap İşlemleri</h3>
+                    <p>Hesap açma, doğrulama ve güvenlik ile ilgili belgelerinizi yükleyin.</p>
+                    <div class="card-details">
+                        <ul>
+                            <li>Kimlik doğrulama belgeleri</li>
+                            <li>Adres kanıtı</li>
+                            <li>Hesap bildirimleri</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="help-card">
+                    <div class="card-icon">💱</div>
+                    <h3>İşlem Sorunları</h3>
+                    <p>Bekleyen veya başarısız işlemlerinizle ilgili kanıtları paylaşın.</p>
+                    <div class="card-details">
+                        <ul>
+                            <li>İşlem makbuzları</li>
+                            <li>Hata bildirimleri</li>
+                            <li>Banka dekontları</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="help-card">
+                    <div class="card-icon">🔒</div>
+                    <h3>Güvenlik</h3>
+                    <p>Şüpheli işlem bildirimleri ve güvenlik endişeleriniz için belge yükleyin.</p>
+                    <div class="card-details">
+                        <ul>
+                            <li>Şüpheli işlem kanıtları</li>
+                            <li>Güvenlik ihlal raporları</li>
+                            <li>2FA sorunları</li>
+                        </ul>
+                    </div>
+                </div>
 
-        <div class="help-card">
-            <div class="card-icon">📋</div>
-            <h3>Genel Destek</h3>
-            <p>Diğer tüm konularla ilgili destek talepleriniz için belge yükleyin.</p>
-            <div class="card-details">
-                <ul>
-                    <li>Platform sorunları</li>
-                    <li>Özel talepler</li>
-                    <li>Öneri ve şikayetler</li>
-                </ul>
+                <div class="help-card">
+                    <div class="card-icon">📋</div>
+                    <h3>Genel Destek</h3>
+                    <p>Diğer tüm konularla ilgili destek talepleriniz için belge yükleyin.</p>
+                    <div class="card-details">
+                        <ul>
+                            <li>Platform sorunları</li>
+                            <li>Özel talepler</li>
+                            <li>Öneri ve şikayetler</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <style>
-/* Add these new styles to your existing CSS */
-.help-cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 25px;
-    margin-top: 30px;
-}
-
-.help-card {
-    background: white;
-    padding: 25px;
-    border-radius: 15px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-    text-align: center;
-    transition: all 0.3s ease;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-}
-
-.help-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 6px 20px rgba(0,0,0,0.1);
-}
-
-.card-icon {
-    font-size: 2.5em;
-    margin-bottom: 15px;
-    color: #006fe6;
-}
-
-.help-card h3 {
-    color: #2c3e50;
-    margin-bottom: 15px;
-    font-size: 1.3em;
-}
-
-.help-card p {
-    color: #666;
-    font-size: 0.95em;
-    line-height: 1.5;
-    margin-bottom: 20px;
-}
-
-.card-details {
-    margin-top: auto;
-    text-align: left;
-    padding-top: 15px;
-    border-top: 1px solid #eee;
-}
-
-.card-details ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.card-details li {
-    color: #555;
-    font-size: 0.9em;
-    padding: 5px 0;
-    display: flex;
-    align-items: center;
-}
-
-.card-details li:before {
-    content: "•";
-    color: #006fe6;
-    font-weight: bold;
-    margin-right: 8px;
-}
-
-@media (max-width: 768px) {
-    .help-cards {
-        grid-template-columns: 1fr;
-    }
-    
-    .help-card {
-        margin-bottom: 20px;
-    }
-}
-
-/* Update support-grid to be more responsive */
-.support-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 40px;
-    margin-top: 40px;
-    max-width: 1200px;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-@media (min-width: 992px) {
-    .support-grid {
-        grid-template-columns: 1fr 1fr;
-    }
-}
-</style>
-
-<style>
+/* Existing and enhanced CSS */
 .help-portal-container {
     max-width: 1200px;
     margin: 0 auto;
@@ -405,38 +368,73 @@ if (file_exists($uploadDir)) {
 
 .help-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
-    margin-top: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 25px;
+    margin-top: 30px;
 }
 
 .help-card {
     background: white;
     padding: 25px;
-    border-radius: 12px;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
     text-align: center;
-    transition: transform 0.3s ease;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
 }
 
 .help-card:hover {
     transform: translateY(-5px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.1);
 }
 
 .card-icon {
     font-size: 2.5em;
     margin-bottom: 15px;
+    color: #006fe6;
 }
 
 .help-card h3 {
     color: #2c3e50;
-    margin-bottom: 10px;
+    margin-bottom: 15px;
+    font-size: 1.3em;
 }
 
 .help-card p {
     color: #666;
-    font-size: 0.9em;
+    font-size: 0.95em;
     line-height: 1.5;
+    margin-bottom: 20px;
+}
+
+.card-details {
+    margin-top: auto;
+    text-align: left;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+.card-details ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.card-details li {
+    color: #555;
+    font-size: 0.9em;
+    padding: 5px 0;
+    display: flex;
+    align-items: center;
+}
+
+.card-details li:before {
+    content: "•";
+    color: #006fe6;
+    font-weight: bold;
+    margin-right: 8px;
 }
 
 .alert {
@@ -462,7 +460,6 @@ if (file_exists($uploadDir)) {
     .support-grid {
         grid-template-columns: 1fr;
     }
-    
     .help-cards {
         grid-template-columns: 1fr;
     }
@@ -483,4 +480,4 @@ document.getElementById('fileToUpload').addEventListener('change', function(e) {
         fileText.textContent = 'Dosya Seçin veya Sürükleyin';
     }
 });
-</script> 
+</script>

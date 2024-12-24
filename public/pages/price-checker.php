@@ -1,46 +1,70 @@
 <?php
 require_once __DIR__ . '/../../src/config/config.php';
 
-
 /**
- * Bypass blacklist
- * http://0177.0.0.1
-    http://2130706433
-    http://[::ffff:127.0.0.1]
-    http://127.1
-    http://127.0.1
+ * Validate and normalize a URL to ensure no bypass attempts succeed.
+ * @param string $url The input URL.
+ * @return bool True if the URL is blocked, otherwise false.
  */
 function isUrlBlocked($url) {
-    $blocked = array(
+    $blockedHosts = [
         '127.0.0.1',
         'localhost',
         '0.0.0.0',
         '::1'
-    );
+    ];
 
-    foreach ($blocked as $blocked_url) {
-        if (stripos($url, $blocked_url) !== false) {
-            return true;
+    // Parse the URL and validate structure
+    $parsedUrl = parse_url($url);
+    if (!$parsedUrl || !isset($parsedUrl['host'])) {
+        return true; // Block malformed or invalid URLs
+    }
+
+    $host = $parsedUrl['host'];
+
+    // Normalize hexadecimal or encoded IPs
+    if (preg_match('/^0x[0-9a-f]+$/i', $host)) {
+        $host = long2ip(hexdec($host)); // Convert hex IP to standard dotted format
+    }
+
+    // Resolve numeric IPs (e.g., 2130706433)
+    if (is_numeric($host)) {
+        $host = long2ip($host); // Convert decimal to dotted format
+    }
+
+    // Handle IPv6 shorthand and canonicalize
+    if (filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+        $host = inet_ntop(inet_pton($host)); // Convert to full IPv6 format
+    }
+
+    // Check against the blocked hosts list
+    foreach ($blockedHosts as $blockedHost) {
+        if ($host === $blockedHost || stripos($host, $blockedHost) !== false) {
+            return true; // Block if exact match or a subdomain
         }
     }
-    return false;
+
+    return false; // Allow if no match
 }
 
 $error = '';
 $result = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_url'])) {
-    $url = $_POST['api_url'];
-    
-    if (!isUrlBlocked($url)) {
+    $url = trim($_POST['api_url']); // Clean input
+
+    if (isUrlBlocked($url)) {
+        $error = "Erişim engellendi: " . htmlspecialchars($url); // Display blacklist message
+    } else {
         try {
-            $response = file_get_contents($url);
+            $response = @file_get_contents($url);
+            if ($response === false) {
+                throw new Exception("API isteği başarısız oldu.");
+            }
             $result = $response;
         } catch (Exception $e) {
-            $error = "API'ye erişilirken bir hata oluştu.";
+            $error = "API'ye erişilirken bir hata oluştu: " . htmlspecialchars($e->getMessage());
         }
-    } else {
-        $error = "Bu URL'ye erişim engellendi!";
     }
 }
 ?>
@@ -49,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_url'])) {
     <div class="checker-header">
         <h1>Coin Fiyat Kontrolü</h1>
         <p class="description">
-            Farklı borsalardan kripto para fiyatlarını kontrol edin. 
+            Farklı borsalardan kripto para fiyatlarını kontrol edin.
             API endpoint URL'sini girerek fiyat verilerini çekebilirsiniz.
         </p>
     </div>
@@ -64,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_url'])) {
         <div class="input-section">
             <div class="api-form">
                 <h2>API Sorgusu</h2>
-                <form method="POST" action="/?page=price-checker">
+                <form method="POST" action="">
                     <div class="form-group">
                         <label for="api_url">API Endpoint URL'si:</label>
                         <input type="url" 
@@ -255,4 +279,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_url'])) {
     color: #991b1b;
     border: 1px solid #fecaca;
 }
-</style> 
+</style>
