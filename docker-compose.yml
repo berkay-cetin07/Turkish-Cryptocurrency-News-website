@@ -1,4 +1,4 @@
-version: '3.9'
+version: "3.9"
 
 services:
   web:
@@ -9,9 +9,7 @@ services:
     ports:
       - "8080:80"
     volumes:
-      - ./public:/var/www/html
-      - ./src:/var/www/src
-      - ./uploads:/var/www/html/uploads
+      - ./uploads:/var/www/html/uploads:rw
     environment:
       APACHE_RUN_USER: www-data
       APACHE_RUN_GROUP: www-data
